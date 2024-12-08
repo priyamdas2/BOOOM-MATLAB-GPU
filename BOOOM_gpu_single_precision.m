@@ -1,4 +1,4 @@
-% clear all
+clear all
 
 gpuDevice();
 profile on
@@ -13,7 +13,7 @@ fprintf('Max Threads Per Block: %d\n', gpuInfo.MaxThreadsPerBlock);
 %% Data
 rng(1);
 P = 1000; % Number of rows in the orthogonal matrix
-Q = 200; % <= P; Number of columns in the orthogonal matrix
+Q = 50; % <= P; Number of columns in the orthogonal matrix
 M = 1000; % >= max(P,Q)
 B = single(randn(Q, M)); % Convert to single precision
 [O_true, ~] = qr(single(randn(P, Q)), 0); % O is P x Q column orthogonal
@@ -25,9 +25,9 @@ MaxTime = 3600;
 MaxRuns = 10;
 MaxIter = 1000;
 rho = single(2); % Ensure constants are in single precision
-TolFun1 = single(10^(-4));
-TolFun2 = single(10^(-4));
-phi = single(10^(-10));
+TolFun1 = single(10^(-2));
+TolFun2 = single(10^(-2));
+phi = single(10^(-6));
 ub = single(pi);
 lb = single(0);
 sIntitial = single(1);
@@ -96,10 +96,10 @@ for iii = 1:MaxRuns
         FunValsPosMoves = gather(FunValsPosMovesGpu);
         FunValsNegMoves = gather(FunValsNegMovesGpu);
         
-        CurrentValue = InitialValue;
-        minValuePos = min(FunValsPosMoves);
-        minValueNeg = min(FunValsNegMoves);
         
+        [minValuePos, minIndexPos] = min(FunValsPosMoves);
+        [minValueNeg, minIndexNeg] = min(FunValsNegMoves);
+        CurrentValue = InitialValue;
         if min(minValuePos, minValueNeg) < InitialValue
             if minValuePos < minValueNeg
                 R = create_rotation_matrix(Q, pairs_i(minIndexPos), pairs_j(minIndexPos), theta);
@@ -110,6 +110,7 @@ for iii = 1:MaxRuns
             end
             CurrentValue = Fun(O_updated);
         end
+        
         
         if i > 1
             if abs(CurrentValue - InitialValue) < TolFun1
